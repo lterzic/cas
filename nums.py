@@ -8,42 +8,42 @@ class Integer(Atom):
     def __init__(self, n: int):
         super().__init__("Integer")
         assert type(n) is int
-        self.n = n
+        self.value = n
 
     def __eq__(self, other):
-        return type(other) is Integer and self.n == other.n
+        return type(other) is Integer and self.value == other.value
 
     def __hash__(self):
-        return hash((self.head, self.n))
+        return hash((self.head, self.value))
 
     def __str__(self):
-        return str(self.n)
+        return str(self.value)
 
     def __add__(self, other):
         if type(other) is int:
-            return Integer(self.n + other)
+            return Integer(self.value + other)
         if type(other) is Integer:
-            return Integer(self.n + other.n)
+            return Integer(self.value + other.value)
         return NotImplemented
 
     def __radd__(self, other):
         return self.__add__(other)
 
     def __neg__(self):
-        return Integer(-self.n)
+        return Integer(-self.value)
 
     def __sub__(self, other):
         if type(other) is int:
-            return Integer(self.n - other)
+            return Integer(self.value - other)
         if type(other) is Integer:
-            return Integer(self.n - other.n)
+            return Integer(self.value - other.value)
         return NotImplemented
 
     def __mul__(self, other):
         if type(other) is int:
-            return Integer(self.n * other)
+            return Integer(self.value * other)
         if type(other) is Integer:
-            return Integer(self.n * other.n)
+            return Integer(self.value * other.value)
         return NotImplemented
 
     def __rmul__(self, other):
@@ -51,13 +51,13 @@ class Integer(Atom):
 
     def __truediv__(self, other):
         if type(other) is int:
-            if self.n % other == 0:
-                return Integer(self.n // other)
+            if self.value % other == 0:
+                return Integer(self.value // other)
             else:
                 return Rational(self, other)
         if type(other) is Integer:
-            if self.n % other.n == 0:
-                return Integer(self.n // other.n)
+            if self.value % other.value == 0:
+                return Integer(self.value // other.value)
             else:
                 return Rational(self, other)
         return NotImplemented
@@ -65,28 +65,28 @@ class Integer(Atom):
     def __pow__(self, other, modulo=None):
         if type(other) is int:
             if other < 0:
-                return Rational(1, self.n ** -other)
+                return Rational(1, self.value ** -other)
             else:
-                return Integer(self.n ** other)
+                return Integer(self.value ** other)
         if type(other) is Integer:
             if other < 0:
-                return Rational(1, self.n ** -other.n)
+                return Rational(1, self.value ** -other.value)
             else:
-                return Integer(self.n ** other.n)
+                return Integer(self.value ** other.value)
         return NotImplemented
 
     def __lt__(self, other):
         if type(other) is Integer:
-            return self.n < other.n
+            return self.value < other.value
         elif type(other) is int:
-            return self.n < other  # should be used only in this file for internal implementations
+            return self.value < other  # should be used only in this file for internal implementations
         return NotImplemented
 
     def __gt__(self, other):
         if type(other) is Integer:
-            return self.n > other.n
+            return self.value > other.value
         elif type(other) is int:
-            return self.n > other  # should be used only in this file for internal implementations
+            return self.value > other  # should be used only in this file for internal implementations
         return NotImplemented
 
 
@@ -96,10 +96,10 @@ class Rational(Atom):
         self.num = num if type(num) is Integer else Integer(num)
         self.den = den if type(den) is Integer else Integer(den)
 
-        comm_factor = gcd(self.num.n, self.den.n)
+        comm_factor = gcd(self.num.value, self.den.value)
         if comm_factor != 1:
-            self.num.n //= comm_factor
-            self.den.n //= comm_factor
+            self.num.value //= comm_factor
+            self.den.value //= comm_factor
 
         if self.den < 0:
             self.num *= -1
@@ -180,16 +180,88 @@ class Real(Atom):
     def __init__(self, r: float):
         super().__init__("Real")
         assert type(r) is float
-        self.r = r
+        self.value = r
 
     def __eq__(self, other):
-        return type(other) is Real and self.r == other.r
+        return type(other) is Real and self.value == other.value
 
     def __hash__(self):
-        return hash((self.head, self.r))
+        return hash((self.head, self.value))
 
     def __str__(self):
-        return str(self.r)
+        return str(self.value)
+
+    def __add__(self, other):
+        if type(other) is int or type(other) is float:
+            return Real(self.value + other)
+        if type(other) is Integer or type(other) is Real:
+            return Real(self.value + other.value)
+        if type(other) is Rational:
+            return Real(self.value + other.num / other.den)
+        return NotImplemented
+
+    def __radd__(self, other):
+        return self.__add__(other)
+
+    def __neg__(self):
+        return Real(-self.value)
+
+    def __sub__(self, other):
+        if type(other) is int or type(other) is float:
+            return Real(self.value - other)
+        if type(other) is Integer or type(other) is Real:
+            return Real(self.value - other.value)
+        if type(other) is Rational:
+            return Real(self.value - other.num / other.den)
+        return NotImplemented
+
+    def __mul__(self, other):
+        if type(other) is int or type(other) is float:
+            return Real(self.value * other)
+        if type(other) is Integer or type(other) is Real:
+            return Real(self.value * other.value)
+        if type(other) is Rational:
+            return Real(self.value * other.num / other.den)
+        return NotImplemented
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
+    def __truediv__(self, other):
+        if type(other) is int or type(other) is float:
+            return Real(self.value / other)
+        if type(other) is Integer or type(other) is Real:
+            return Real(self.value / other.value)
+        if type(other) is Rational:
+            return Real(self.value * other.den * other.num)
+        return NotImplemented
+
+    def __pow__(self, other, modulo=None):
+        if type(other) is int or type(other) is float:
+            return Real(self.value ** other)
+        if type(other) is Integer or type(other) is Real:
+            return Real(self.value ** other.value)
+        if type(other) is Rational:
+            return Real(self.value ** (other.num / other.den))
+        return NotImplemented
+
+    def __lt__(self, other):
+        if type(other) is int or type(other) is float:
+            return self.value < other
+        if type(other) is Integer or type(other) is Real:
+            return self.value < other.value
+        if type(other) is Rational:
+            return self.value < other.num / other.den
+        return NotImplemented
+
+    def __gt__(self, other):
+        if type(other) is int or type(other) is float:
+            return self.value > other
+        if type(other) is Integer or type(other) is Real:
+            return self.value > other.value
+        if type(other) is Rational:
+            return self.value > other.num / other.den
+        return NotImplemented
 
 
 class Complex(Atom):
