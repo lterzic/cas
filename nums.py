@@ -20,30 +20,41 @@ class Integer(Atom):
         return str(self.n)
 
     def __add__(self, other):
+        if type(other) is int:
+            return Integer(self.n + other)
         if type(other) is Integer:
             return Integer(self.n + other.n)
         return NotImplemented
 
     def __radd__(self, other):
-        return Integer.__add__(self, other)
+        return self.__add__(other)
 
     def __neg__(self):
         return Integer(-self.n)
 
     def __sub__(self, other):
+        if type(other) is int:
+            return Integer(self.n - other)
         if type(other) is Integer:
             return Integer(self.n - other.n)
         return NotImplemented
 
     def __mul__(self, other):
+        if type(other) is int:
+            return Integer(self.n * other)
         if type(other) is Integer:
             return Integer(self.n * other.n)
         return NotImplemented
 
     def __rmul__(self, other):
-        return Integer.__mul__(self, other)
+        return self.__mul__(other)
 
     def __truediv__(self, other):
+        if type(other) is int:
+            if self.n % other == 0:
+                return Integer(self.n // other)
+            else:
+                return Rational(self, other)
         if type(other) is Integer:
             if self.n % other.n == 0:
                 return Integer(self.n // other.n)
@@ -52,6 +63,11 @@ class Integer(Atom):
         return NotImplemented
 
     def __pow__(self, other, modulo=None):
+        if type(other) is int:
+            if other < 0:
+                return Rational(1, self.n ** -other)
+            else:
+                return Integer(self.n ** other)
         if type(other) is Integer:
             if other < 0:
                 return Rational(1, self.n ** -other.n)
@@ -85,7 +101,9 @@ class Rational(Atom):
             self.num.n //= comm_factor
             self.den.n //= comm_factor
 
-        assert self.den > 0
+        if self.den < 0:
+            self.num *= -1
+            self.den *= -1
 
     def __eq__(self, other):
         return type(other) is Rational and (self.num * other.den == self.den * other.num)
@@ -99,12 +117,12 @@ class Rational(Atom):
     def __add__(self, other):
         if type(other) is Rational:
             return Rational(self.num * other.den + other.num * self.den, self.den * other.den)
-        elif type(other) is Integer:
+        elif type(other) is Integer or type(other) is int:
             return Rational(self.num + other * self.den, self.den)
         return NotImplemented
 
     def __radd__(self, other):
-        return Rational.__add__(self, other)
+        return self.__add__(other)
 
     def __neg__(self):
         return Rational(-self.num, self.den)
@@ -112,43 +130,48 @@ class Rational(Atom):
     def __sub__(self, other):
         if type(other) is Rational:
             return Rational(self.num * other.den - other.num * self.den, self.den * other.den)
-        elif type(other) is Integer:
+        elif type(other) is Integer or type(other) is int:
             return Rational(self.num - other * self.den, self.den)
         return NotImplemented
 
     def __mul__(self, other):
         if type(other) is Rational:
             return Rational(self.num * other.num, self.den * other.den)
-        elif type(other) is Integer:
+        elif type(other) is Integer or type(other) is int:
             return Rational(self.num * other, self.den)
         return NotImplemented
 
     def __rmul__(self, other):
-        return Rational.__mul__(self, other)
+        return self.__mul__(other)
 
     def __truediv__(self, other):
         if type(other) is Rational:
             return Rational(self.num * other.den, self.den * other.num)
-        elif type(other) is Integer:
+        elif type(other) is Integer or type(other) is int:
             return Rational(self.num, self.den * other)
         return NotImplemented
 
     def __pow__(self, other, modulo=None):
-        if type(other) is Integer:
-            return Rational(self.num ** other, self.den ** other)
+        if type(other) is Integer or type(other) is int:
+            if other == 0:
+                return Integer(1)
+            elif other < 0:
+                return Rational(self.den ** -other, self.num ** -other)
+            else:
+                return Rational(self.num ** other, self.den ** other)
         return NotImplemented
 
     def __lt__(self, other):
         if type(other) is Rational:
             return self.num * other.den < self.den * other.num
-        elif type(other) is Integer:
+        elif type(other) is Integer or type(other) is int:
             return self.num < self.den * other
         return NotImplemented
 
     def __gt__(self, other):
         if type(other) is Rational:
             return self.num * other.den > self.den * other.num
-        elif type(other) is Integer:
+        elif type(other) is Integer or type(other) is int:
             return self.num > self.den * other
         return NotImplemented
 

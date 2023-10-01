@@ -9,3 +9,4 @@ x, y = symbols("x y")
 
 print(b, d, b == d)
 print(x/2)
+print(Rational(2, -3) < 1)
