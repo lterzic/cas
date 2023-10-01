@@ -1,12 +1,13 @@
 from expr import Expr
 from atom import symbols
 from nums import *
+from rule import *
 
-a = Expr("Plus", ["x", "y", "a"])
-b = Expr("Plus", [3, a])
-d = Expr("Plus", ["a", "x", "y", 3])
-x, y = symbols("x y")
+a, b, c, d = symbols("a b c d")
 
-print(b, d, b == d)
-print(x/2)
-print(Rational(2, -3) < 1)
+test_expr = Expr("A", [a, b, c, d])
+x = Blank("x")
+pattern = Expr("A", [a, x, d])
+
+print(test_expr, x, pattern)
+print(match_expr(test_expr, pattern))

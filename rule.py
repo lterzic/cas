@@ -69,21 +69,44 @@ def match_expr(expr: Expr, pattern: Expr, blank_map: dict = {}) -> Tuple[bool, d
         if len(pattern.args) > len(expr.args):
             return False, blank_map
 
-        for i in range(len(pattern.args)):
-            pattern_arg = pattern.args[i]
+        expr_index = 0
+        pattern_index = 0
+
+        while pattern_index < len(pattern.args):
+            if expr_index >= len(expr.args):
+                return False, blank_map
+
+            pattern_arg = pattern.args[pattern_index]
 
             if type(pattern_arg) is Blank:
                 if pattern_arg.text in blank_map:
-                    blank_value = blank_map[pattern_arg.text]
-                    recursive_match = match_expr(expr.args[i], blank_value, blank_map)
+                    matched_value = blank_map[pattern_arg.text]
+
+                    recursive_match = match_expr(expr.args[expr_index], matched_value, blank_map)
                     if not recursive_match[0]:
                         return False, blank_map
                 else:
-                    blank_map[pattern_arg.text] = expr.args[i]
+                    blank_map[pattern_arg.text] = expr.args[expr_index]
             else:
-                recursive_match = match_expr(expr.args[i], pattern_arg, blank_map)
+                recursive_match = match_expr(expr.args[expr_index], pattern_arg, blank_map)
                 if not recursive_match[0]:
-                    return False, blank_map
+                    prev_pattern_arg = pattern.args[pattern_index - 1]
+                    if type(prev_pattern_arg) is Blank:
+                        matched_value = blank_map[prev_pattern_arg.text]
+                        if matched_value == expr.args[expr_index - 1]:
+                            match_multiple = Expr(expr.head, [matched_value, expr.args[expr_index]])
+                            # todo: set type of attr to Set and pass them every time when creating new Expr from old one
+                            blank_map[prev_pattern_arg.text] = match_multiple # this might cause problems w
+                        else:
+                            assert matched_value.args[-1] == expr.args[expr_index - 1]
+                            matched_value.args.append(expr.args[expr_index])
+                        expr_index += 1
+                        continue
+                    else:
+                        return False, blank_map
+
+            expr_index += 1
+            pattern_index += 1
 
         return True, blank_map
     else:
