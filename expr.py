@@ -8,8 +8,7 @@ class Expr:
     def __init__(self, head: Head, args: List[ExprArgType] = [], attr: List[Attribute] = []):
         self.head = head
         self.args = args[:]
-        self.attr = ([] if self.head not in HeadAttributes else HeadAttributes[self.head]) + attr
-        # replace with defualtdict
+        self.attr = HeadAttributes[self.head] + attr
 
         for i in range(len(self.args)):
             from atom import atomize

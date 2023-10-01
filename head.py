@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Callable, Dict, List
+from collections import defaultdict
 
 # Head: TypeAlias = str - TypeAlias python >= 3.11
 Head = str
@@ -14,11 +15,11 @@ class Attribute(Enum):
 
 
 # rename global variables to all caps
-HeadAttributes: Dict[Head, List[Attribute]] = {
+HeadAttributes: Dict[Head, List[Attribute]] = defaultdict(list, {
     "Plus":  [Attribute.COMMUTATIVE, Attribute.ASSOCIATIVE],
     "Mult":  [Attribute.COMMUTATIVE, Attribute.ASSOCIATIVE],
     "Power": [Attribute.FIXED_ARG_NUM]
-}
+})
 
 HeadPrintFormat: Dict[Head, Callable[[list], str]] = {
     "Plus": lambda args: '+'.join(str(i) for i in args),
