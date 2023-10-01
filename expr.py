@@ -8,7 +8,7 @@ class Expr:
     def __init__(self, head: Head, args: List[ExprArgType] = [], attr: List[Attribute] = []):
         self.head = head
         self.args = args[:]
-        self.attr = HeadAttributes[self.head] + attr
+        self.attr = set(HeadAttributes[self.head] + attr)
 
         for i in range(len(self.args)):
             from atom import atomize

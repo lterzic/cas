@@ -1,7 +1,7 @@
 from typing import Tuple
 from expr import Expr
 from atom import Atom
-from head import Attribute, HeadAttributes
+from head import Attribute
 
 
 class Rule:
@@ -65,10 +65,10 @@ def match_expr(expr: Expr, pattern: Expr, blank_map: dict = {}) -> Tuple[bool, d
     if expr.head is not pattern.head:
         return False, blank_map
 
-    if Attribute.COMMUTATIVE not in HeadAttributes[expr.head]:
-        if len(pattern.args) > len(expr.args):
-            return False, blank_map
+    if len(pattern.args) > len(expr.args):
+        return False, blank_map
 
+    if Attribute.COMMUTATIVE not in expr.attr:
         expr_index = 0
         pattern_index = 0
 
@@ -91,12 +91,11 @@ def match_expr(expr: Expr, pattern: Expr, blank_map: dict = {}) -> Tuple[bool, d
                 recursive_match = match_expr(expr.args[expr_index], pattern_arg, blank_map)
                 if not recursive_match[0]:
                     prev_pattern_arg = pattern.args[pattern_index - 1]
-                    if type(prev_pattern_arg) is Blank:
+                    if Attribute.ASSOCIATIVE in expr.attr and type(prev_pattern_arg) is Blank:
                         matched_value = blank_map[prev_pattern_arg.text]
-                        if matched_value == expr.args[expr_index - 1]:
-                            match_multiple = Expr(expr.head, [matched_value, expr.args[expr_index]])
-                            # todo: set type of attr to Set and pass them every time when creating new Expr from old one
-                            blank_map[prev_pattern_arg.text] = match_multiple # this might cause problems w
+                        if matched_value != expr.head:
+                            match_multiple = Expr(expr.head, [matched_value, expr.args[expr_index]], list(expr.attr))
+                            blank_map[prev_pattern_arg.text] = match_multiple  # check for coherence problems
                         else:
                             assert matched_value.args[-1] == expr.args[expr_index - 1]
                             matched_value.args.append(expr.args[expr_index])
@@ -107,8 +106,35 @@ def match_expr(expr: Expr, pattern: Expr, blank_map: dict = {}) -> Tuple[bool, d
 
             expr_index += 1
             pattern_index += 1
-
-        return True, blank_map
     else:
-        pass
+        non_blanks = [x for x in pattern.args if type(x) is not Blank]
+        non_blanks.sort(key=lambda x: hash(x))
 
+        blanks = [x for x in pattern.args if type(x) is Blank]
+        last_blank = None
+
+        nb_index = 0
+        # assuming same order of elements due to sort
+        for expr_arg in expr.args:
+            if nb_index < len(non_blanks):
+                match = match_expr(expr_arg, non_blanks[nb_index], blank_map)
+                if match[0]:
+                    nb_index += 1
+                    continue
+            if nb_index >= len(non_blanks) or not match[0]:
+                if len(blanks) == 0:
+                    if Attribute.ASSOCIATIVE in expr.attr and type(last_blank) is Blank:
+                        matched_value = blank_map[last_blank.text]
+                        if matched_value.head != expr.head:
+                            match_multiple = Expr(expr.head, [matched_value, expr_arg], list(expr.attr))
+                            blank_map[last_blank.text] = match_multiple  # check for coherence problems
+                        else:
+                            matched_value.args.append(expr_arg)
+                    else:
+                        return False, blank_map
+                else:
+                    blank_map[blanks[0].text] = expr_arg
+                    last_blank = blanks[0]
+                    del blanks[0]
+
+    return True, blank_map
