@@ -21,9 +21,6 @@ class Expr:
         if Attribute.ASSOCIATIVE in self.attr and Attribute.NO_FLATTEN not in self.attr:
             self.flatten()
 
-        if Attribute.COMMUTATIVE in self.attr:
-            self.args.sort(key=lambda x: hash(x))
-
     def flatten(self, force=False, copy=False, recursive=False):
         assert Attribute.ASSOCIATIVE in self.attr or force
 
@@ -64,7 +61,7 @@ class Expr:
 
     def __str__(self):
         if self.head in HeadPrintFormat:
-            return HeadPrintFormat[self.head](self.args)
+            return HeadPrintFormat[self.head](self.head, self.args)
         else:
             return self.__full__()
 
@@ -82,6 +79,9 @@ class Expr:
 
     def __pow__(self, other, modulo=None):
         return Expr("Power", [self, other])
+
+    def __neg__(self):
+        return Expr("Neg", [self])
 
     def __sub__(self, other):
         return self + (-other)

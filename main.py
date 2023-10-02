@@ -5,8 +5,15 @@ from rule import *
 
 a, b, c, d, e, x, y, _x, _y = symbols("a b c d e x y _x _y")
 
-s1 = a ** b ** c
-r1 = Rule(_x ** _y, y)
-print(s1, r1)
+expr1 = a + b + c + b + d - b + c - c - b
+expr2 = (a*b)**c
 
-print(apply_rule(s1, r1)[1])
+add_simp = Rule(_x - _x + _y, y)
+
+print(expr1, expr2)
+print(add_simp)
+
+res = apply_rule(expr1, add_simp)
+while res[0]:
+    print(res[1])
+    res = apply_rule(res[1], add_simp)

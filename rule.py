@@ -90,35 +90,46 @@ def match_expr(expr: Expr, pattern: Expr, blank_map: dict = {}) -> Tuple[bool, d
             expr_index += 1
             pattern_index += 1
     else:
-        non_blanks = [x for x in pattern.args if type(x) is not Blank]
-        non_blanks.sort(key=lambda x: hash(x))
+        pattern_blanks = [x for x in pattern.args if type(x) is Blank]
+        pattern_args = [x for x in pattern.args if type(x) is not Blank]
 
-        blanks = [x for x in pattern.args if type(x) is Blank]
-        last_blank = None
+        expr_unmatched = expr.args[:]
 
-        nb_index = 0
-        # assuming same order of elements due to sort
-        for expr_arg in expr.args:
-            if nb_index < len(non_blanks):
-                match = match_expr(expr_arg, non_blanks[nb_index], blank_map)
-                if match[0]:
-                    nb_index += 1
-                    continue
-            if nb_index >= len(non_blanks) or not match[0]:
-                if len(blanks) == 0:
-                    if Attribute.ASSOCIATIVE in expr.attr and type(last_blank) is Blank:
-                        matched_value = blank_map[last_blank.text]
-                        if matched_value.head != expr.head:
-                            match_multiple = expr.copy([matched_value, expr_arg])
-                            blank_map[last_blank.text] = match_multiple  # check for coherence problems
-                        else:
-                            matched_value.args.append(expr_arg)
-                    else:
-                        return False, blank_map
-                else:
-                    blank_map[blanks[0].text] = expr_arg
-                    last_blank = blanks[0]
-                    del blanks[0]
+        # match every non-blank pattern arg first, then fill with blanks
+        for pattern_arg in pattern_args:
+            matched = False
+            for expr_index in range(len(expr_unmatched)):
+                matched = match_expr(expr_unmatched[expr_index], pattern_arg, blank_map)[0]
+                if matched:
+                    del expr_unmatched[expr_index]
+                    break
+            if not matched:
+                return False, blank_map
+
+        if len(expr_unmatched) == 0:
+            assert len(pattern_blanks) == 0
+            return True, blank_map
+
+        # match and remove all non-empty blanks
+        for pb in pattern_blanks:
+            if pb.text in blank_map:
+                matched = False
+                for expr_index in range(len(expr_unmatched)):
+                    matched = match_expr(expr_unmatched[expr_index], blank_map[pb.text], blank_map)[0]
+                    if matched:
+                        del expr_unmatched[expr_index]
+                        break
+                if not matched:
+                    return False, blank_map
+        pattern_blanks = [x for x in pattern_blanks if x.text not in blank_map]
+
+        if len(expr_unmatched) > len(pattern_blanks) and Attribute.ASSOCIATIVE not in expr.attr:
+            return False, blank_map
+
+        for i in range(len(pattern_blanks)):
+            blank_map[pattern_blanks[i].text] = expr_unmatched[i]
+        if len(pattern_blanks) < len(expr_unmatched):
+            blank_map[pattern_blanks[-1].text] = expr.copy(expr_unmatched[len(pattern_blanks)-1:])
 
     return True, blank_map
 
