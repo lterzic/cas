@@ -63,7 +63,7 @@ class Expr:
         if self.head in HeadPrintFormat:
             return HeadPrintFormat[self.head](self.head, self.args)
         else:
-            return self.__full__()
+            return str(self.head) + '(' + ','.join(str(i) for i in self.args) + ')'
 
     def __add__(self, other):
         return Expr("Plus", [self, other])

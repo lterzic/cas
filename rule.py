@@ -123,6 +123,10 @@ def match_expr(expr: Expr, pattern: Expr, blank_map: dict = {}) -> Tuple[bool, d
                     return False, blank_map
         pattern_blanks = [x for x in pattern_blanks if x.text not in blank_map]
 
+        if len(pattern_blanks) == 0:
+            blank_map["UNMATCHED"] = expr.copy(expr_unmatched)
+            return Attribute.ASSOCIATIVE in expr.attr, blank_map
+
         if len(expr_unmatched) > len(pattern_blanks) and Attribute.ASSOCIATIVE not in expr.attr:
             return False, blank_map
 
@@ -154,6 +158,10 @@ def apply_rule(expr: Expr, rule: Rule) -> Tuple[bool, Expr]:
         rhs = rule.rhs
         for s in match[1]:
             rhs = replace(rhs, Symbol(s), match[1][s])[1]
+        if "UNMATCHED" in match[1]:
+            unmatched = match[1]["UNMATCHED"]
+            assert unmatched.head is expr.head
+            rhs = expr.copy(match[1]["UNMATCHED"].args + [rhs])
         return True, rhs
 
     if isinstance(expr, Atom):
