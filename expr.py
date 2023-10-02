@@ -39,12 +39,10 @@ class Expr:
 
         return result
 
-    def copy(self):
-        from copy import copy
-        obj_copy = copy(self)
-        obj_copy.args = obj_copy.args[:]
-        obj_copy.attr = obj_copy.attr[:]
-        return obj_copy
+    def copy(self, args=None):
+        if args is None:
+            args = self.args
+        return Expr(self.head, args, list(self.attr))
 
     def __eq__(self, other):
         if type(self) is not type(other):

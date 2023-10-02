@@ -1,6 +1,6 @@
 from typing import Tuple
 from expr import Expr
-from atom import Atom
+from atom import Atom, Symbol
 from head import Attribute
 
 
@@ -8,6 +8,9 @@ class Rule:
     def __init__(self, lhs: Expr, rhs: Expr):
         self.lhs = lhs
         self.rhs = rhs
+
+    def __str__(self):
+        return str(self.lhs) + '->' + str(self.rhs)
 
 
 class Blank(Atom):
@@ -25,26 +28,6 @@ class Blank(Atom):
     def __hash__(self):
         return hash((self.head, self.text))
 
-
-# class BlankSequence(Atom):
-#     def __init__(self, text: str):
-#         super().__init__("BlankSequence")
-#         assert " " not in text
-#         self.text = text
-#
-#     def __str__(self):
-#         return '__' + self.text
-#
-#     def __eq__(self, other):
-#         return type(other) is BlankSequence and self.text == other.text
-#
-#     def __hash__(self):
-#         return hash((self.head, self.text))
-
-
-class ExprCondition(Expr):
-    def __init__(self):
-        super().__init__("Condition")
 
 # test_expr = kx + 7x + 2y
 # test_rule = a_ x | a > 4 -> (2a)x
@@ -94,7 +77,7 @@ def match_expr(expr: Expr, pattern: Expr, blank_map: dict = {}) -> Tuple[bool, d
                     if Attribute.ASSOCIATIVE in expr.attr and type(prev_pattern_arg) is Blank:
                         matched_value = blank_map[prev_pattern_arg.text]
                         if matched_value != expr.head:
-                            match_multiple = Expr(expr.head, [matched_value, expr.args[expr_index]], list(expr.attr))
+                            match_multiple = expr.copy([matched_value, expr.args[expr_index]])
                             blank_map[prev_pattern_arg.text] = match_multiple  # check for coherence problems
                         else:
                             assert matched_value.args[-1] == expr.args[expr_index - 1]
@@ -126,7 +109,7 @@ def match_expr(expr: Expr, pattern: Expr, blank_map: dict = {}) -> Tuple[bool, d
                     if Attribute.ASSOCIATIVE in expr.attr and type(last_blank) is Blank:
                         matched_value = blank_map[last_blank.text]
                         if matched_value.head != expr.head:
-                            match_multiple = Expr(expr.head, [matched_value, expr_arg], list(expr.attr))
+                            match_multiple = expr.copy([matched_value, expr_arg])
                             blank_map[last_blank.text] = match_multiple  # check for coherence problems
                         else:
                             matched_value.args.append(expr_arg)
@@ -138,3 +121,34 @@ def match_expr(expr: Expr, pattern: Expr, blank_map: dict = {}) -> Tuple[bool, d
                     del blanks[0]
 
     return True, blank_map
+
+
+# replace exact matches recursively
+def replace(expr: Expr, old: Expr, new: Expr) -> Expr:
+    if isinstance(expr, Atom):
+        return new if expr == old else expr
+
+    replace_args = [replace(arg, old, new) for arg in expr.args]
+    new_expr = expr.copy(replace_args)
+
+    return new if new_expr == old else new_expr
+
+
+def apply_rule(expr: Expr, rule: Rule) -> Tuple[bool, Expr]:
+    if isinstance(expr, Atom):
+        return False, expr
+
+    apply_to_args = [apply_rule(arg, rule) for arg in expr.args]
+    modified = any(x[0] for x in apply_to_args)
+
+    new_expr = expr if not modified else expr.copy(list(x[1] for x in apply_to_args))
+
+    match = match_expr(new_expr, rule.lhs, {})
+    if match[0]:
+        rhs = rule.rhs
+        for s in match[1]:
+            rhs = replace(rhs, Symbol(s), match[1][s])
+            rhs = replace(rhs, Blank(s), match[1][s])
+        return True, rhs
+
+    return modified, new_expr
