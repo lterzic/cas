@@ -123,32 +123,32 @@ def match_expr(expr: Expr, pattern: Expr, blank_map: dict = {}) -> Tuple[bool, d
     return True, blank_map
 
 
-# replace exact matches recursively
-def replace(expr: Expr, old: Expr, new: Expr) -> Expr:
-    if isinstance(expr, Atom):
-        return new if expr == old else expr
+def replace(expr: Expr, to_replace: Expr, replace_with: Expr) -> Tuple[bool, Expr]:
+    if expr == to_replace:
+        return True, replace_with
 
-    replace_args = [replace(arg, old, new) for arg in expr.args]
-    new_expr = expr.copy(replace_args)
+    replace_args = [replace(arg, to_replace, replace_with) for arg in expr.args]
+    modified = any(x[0] for x in replace_args)
 
-    return new if new_expr == old else new_expr
+    new_expr = expr if not modified else expr.copy(list(x[1] for x in replace_args))
+    if new_expr == to_replace:
+        return True, replace_with
+
+    return modified, new_expr
 
 
 def apply_rule(expr: Expr, rule: Rule) -> Tuple[bool, Expr]:
+    match = match_expr(expr, rule.lhs, blank_map={})
+    if match[0]:
+        rhs = rule.rhs
+        for s in match[1]:
+            rhs = replace(rhs, Symbol(s), match[1][s])[1]
+        return True, rhs
+
     if isinstance(expr, Atom):
         return False, expr
 
     apply_to_args = [apply_rule(arg, rule) for arg in expr.args]
     modified = any(x[0] for x in apply_to_args)
 
-    new_expr = expr if not modified else expr.copy(list(x[1] for x in apply_to_args))
-
-    match = match_expr(new_expr, rule.lhs, {})
-    if match[0]:
-        rhs = rule.rhs
-        for s in match[1]:
-            rhs = replace(rhs, Symbol(s), match[1][s])
-            rhs = replace(rhs, Blank(s), match[1][s])
-        return True, rhs
-
-    return modified, new_expr
+    return modified, expr if not modified else expr.copy(list(x[1] for x in apply_to_args))

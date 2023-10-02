@@ -51,7 +51,8 @@ class Symbol(Atom):
 
 
 def symbols(text: str):
-    return (Symbol(c) for c in text.split(" ") if len(c) > 0)
+    from rule import Blank
+    return ((Blank(c[1:]) if c[0] is '_' else Symbol(c)) for c in text.split(" ") if len(c) > 0)
 
 
 def atomize(primitive):
