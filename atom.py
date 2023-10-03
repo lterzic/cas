@@ -50,6 +50,25 @@ class Symbol(Atom):
         return hash((self.head, self.text))
 
 
+class Boolean(Atom):
+    def __init__(self, value: bool):
+        super().__init__("Boolean")
+        self.value = value
+
+    def __str__(self):
+        return str(self.value)
+
+    def __eq__(self, other):
+        return type(other) is Boolean and self.value == other.value
+
+    def __hash__(self):
+        return hash((self.head, self.value))
+
+
+TRUE = Boolean(True)
+FALSE = Boolean(False)
+
+
 def symbols(text: str):
     from rule import Blank
     return ((Blank(c[1:]) if c[0] is '_' else Symbol(c)) for c in text.split(" ") if len(c) > 0)
@@ -60,8 +79,11 @@ def atomize(primitive):
         return primitive
 
     from nums import Integer, Real, Complex
+
     if type(primitive) is str:
         return String(primitive)
+    elif type(primitive) is bool:
+        return Boolean(primitive)
     elif type(primitive) is int:
         return Integer(primitive)
     elif type(primitive) is float:

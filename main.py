@@ -3,6 +3,10 @@ from atom import symbols
 from nums import *
 from rule import *
 
+# ----- TESTING ONLY -----
+#GLOBAL_RULES["Inequality"].append(Rule())
+# ------------------------
+
 a, b, c, d, e, x, y, _x, _y = symbols("a b c d e x y _x _y")
 
 s1 = a**2 + c + 2*a*b + b**2
