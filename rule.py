@@ -1,7 +1,7 @@
 from typing import Tuple, Dict, List, Callable
 from expr import Expr
-from atom import Atom, Symbol, TRUE, atomize
-from head import Attribute, Head
+from atom import Atom, Symbol, TRUE, atomize, is_numeric
+from head import Attribute, Head, HeadNumericEval, HeadIdentity
 from collections import defaultdict
 
 # assert rule sortedness
@@ -10,7 +10,7 @@ GLOBAL_RULES: Dict[Head, List[Tuple[Expr, Callable[[Expr], Expr]]]] = defaultdic
 # GLOBAL_ASSUMPTIONS: Dict[Head, List[Expr]] = defaultdict(list)
 
 
-class Rule:
+class Rule: # todo: Change to Expr type
     def __init__(self, lhs: Expr, rhs: Expr, *conditions: List[Expr]):
         self.lhs = lhs
         self.rhs = rhs
@@ -218,7 +218,7 @@ def apply_rule(expr: Expr, rule: Rule) -> Tuple[bool, Expr]:
             unmatched = match[1]["UNMATCHED"]
             assert unmatched.head is expr.head
             rhs = expr.copy(match[1]["UNMATCHED"].args + [rhs])
-        return True, rhs
+        return True, eval_expr(rhs)[1]
 
     if isinstance(expr, Atom):
         return False, expr
@@ -226,21 +226,33 @@ def apply_rule(expr: Expr, rule: Rule) -> Tuple[bool, Expr]:
     apply_to_args = [apply_rule(arg, rule) for arg in expr.args]
     modified = any(x[0] for x in apply_to_args)
 
-    return modified, expr if not modified else expr.copy(list(x[1] for x in apply_to_args))
+    if modified:
+        return True, eval_expr(expr.copy(list(x[1] for x in apply_to_args)))[1]
+    return False, expr
 
 
 def eval_expr(expr: Expr) -> Tuple[bool, Expr]:
+    if Attribute.UNEVALUATED in expr.attr:
+        return False, expr
+
     eval_args = [eval_expr(arg) for arg in expr.args]
     modified = any(x[0] for x in eval_args)
 
-    new_expr = expr if not modified else expr.copy(eval_args)
+    if modified:
+        expr = expr.copy(eval_args)
+
+    if Attribute.NUMERIC in expr.attr and all(is_numeric(arg) for arg in expr.args):
+        expr = atomize(HeadNumericEval[expr.head](expr.args))
 
     while len(GLOBAL_RULES[expr.head]) > 0:
         for rule in GLOBAL_RULES[expr.head]:
-            pattern_match = match_expr(new_expr, rule[0], [], {})   # todo: add conditional rules
+            pattern_match = match_expr(expr, rule[0], [], {})   # todo: add conditional rules
             if pattern_match[0]:
                 modified = True
-                new_expr = rule[1](new_expr)
+                expr = rule[1](expr)
                 break
 
-    return modified, new_expr
+    if len(expr.args) == 0 and Attribute.HAS_IDENTITY in expr.attr:
+        return True, HeadIdentity[expr.head]
+
+    return modified, expr

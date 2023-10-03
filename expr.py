@@ -90,3 +90,11 @@ class Expr:
         from atom import atomize
         from nums import Integer
         return self * (atomize(other) ** Integer(-1))
+
+    def __lt__(self, other):
+        return Expr("Less", [self, other])
+
+    def __gt__(self, other):
+        return Expr("Greater", [self, other])
+
+# todo: evaluate expressions after crating in operator overloading

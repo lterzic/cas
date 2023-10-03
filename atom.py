@@ -90,3 +90,10 @@ def atomize(primitive):
         return Real(primitive)
     elif type(primitive) is complex:
         return Complex(primitive.real, primitive.imag)
+
+    raise "Primitive not atomizable"
+
+
+def is_numeric(expr: Expr):
+    from nums import Integer, Rational, Real, Complex
+    return type(expr) in (Integer, Rational, Real, Complex)
